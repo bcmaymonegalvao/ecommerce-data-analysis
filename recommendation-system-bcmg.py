@@ -227,26 +227,33 @@ def recommend_product(model, df, customer_id):
         
 
 def main():
-    st.set_page_config(page_title="E-commerce Data Analysis & Recommender", layout="wide")
-    add_header()
+    st.set_page_config(
+        page_title="E-commerce Data Analysis & Recommender",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
 
-    st.markdown('<div class="main-content">', unsafe_allow_html=True)
-
-    st.sidebar.title("Menu")
-    options = ["Análise Exploratória", "Análise Relacional", "Recomendação"]
+    st.sidebar.title("Menu de Navegação")
+    options = ["Análise Exploratória", "Análise Relacional", "Recomendação de Produtos"]
     choice = st.sidebar.radio("Escolha uma seção", options)
 
+    # Carga dos dados
     data = load_data()
 
     if choice == "Análise Exploratória":
         eda_section(data)
+
     elif choice == "Análise Relacional":
         relational_analysis(data)
-    elif choice == "Recomendação":
+
+    elif choice == "Recomendação de Produtos":
         X, y, df_ml = prepare_ml_data(data)
         model = train_and_evaluate_models(X, y)
+
+        st.sidebar.subheader("Faça uma Requisição")
         customers = df_ml['customer_unique_id'].unique()
         selected_customer = st.sidebar.selectbox("Selecione o cliente para recomendação", customers)
+
         recommend_product(model, df_ml, selected_customer)
 
     st.markdown('</div>', unsafe_allow_html=True)
