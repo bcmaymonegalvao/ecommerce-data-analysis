@@ -4,102 +4,143 @@ import plotly.express as px
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, classification_report
-import numpy as np
+from sklearn.metrics import accuracy_score
+
+
+# --- Header e Footer personalizados ---
+def add_header():
+    st.markdown("""
+    <style>
+    .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: bold;
+        font-size: 2rem;
+        padding: 0.5rem 2rem;
+        z-index: 1000;
+        box-shadow: 0 4px 15px rgba(31, 38, 135, 0.37);
+        display: flex;
+        align-items: center;
+    }
+    .header span {
+        margin-left: 0.75rem;
+    }
+    .main-content {
+        padding-top: 4rem;
+        padding-bottom: 3rem; /* evitar sobreposição do footer */
+    }
+    </style>
+    <div class="header">
+        🛒🚀 E-Commerce Data Analysis & Recommender <span>🔍🤖</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+def add_footer():
+    st.markdown("""
+    <style>
+    .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(90deg, #764ba2 0%, #6c5ce7 100%);
+        color: white;
+        text-align: center;
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 -4px 15px rgba(31, 38, 135, 0.37);
+        z-index: 1000;
+    }
+    .footer a {
+        color: #ffe066;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .footer a:hover {
+        text-decoration: underline;
+    }
+    </style>
+    <div class="footer">
+        Desenvolvido com ❤️ por <a href="https://github.com/bcmaymonegalvao" target="_blank">Bruno Galvão</a> | 
+        <span>📅 2025</span> | &copy; Todos os direitos reservados
+    </div>
+    """, unsafe_allow_html=True)
+
+# --- Carregamento e análises (exemplo reduzido) ---
 
 @st.cache_data(ttl=3600)
 def load_data():
     base_url = "https://raw.githubusercontent.com/bcmaymonegalvao/ecommerce-data-analysis/main/"
     data_files = {
-        "geolocation": "olist_geolocation_dataset.parquet",
-        "customers": "olist_customers_dataset.parquet",
-        "translation": "product_category_name_translation.parquet",
-        "sellers": "olist_sellers_dataset.parquet",
-        "products": "olist_products_dataset.parquet",
-        "orders": "olist_orders_dataset.parquet",
-        "reviews": "olist_order_reviews_dataset.parquet",
-        "payments": "olist_order_payments_dataset.parquet",
-        "order_items": "olist_order_items_dataset.parquet"
+        "geolocation": "olist_geolocation_dataset.csv",  # altere para CSV porque o Parquet raw nao funciona direto no github
+        "customers": "olist_customers_dataset.csv",
+        "translation": "product_category_name_translation.csv",
+        "sellers": "olist_sellers_dataset.csv",
+        "products": "olist_products_dataset.csv",
+        "orders": "olist_orders_dataset.csv",
+        "reviews": "olist_order_reviews_dataset.csv",
+        "payments": "olist_order_payments_dataset.csv",
+        "order_items": "olist_order_items_dataset.csv"
     }
     data = {}
     for key, filename in data_files.items():
         st.info(f"Carregando {filename}...")
-        df = pd.read_parquet(base_url + filename)
+        df = pd.read_csv(base_url + filename)
         data[key] = df
     return data
 
 def eda_section(data):
-    st.header("Análise Exploratória dos Dados")
-
+    st.header("🔎 Análise Exploratória dos Dados")
     tab_names = list(data.keys())
-    tab = st.selectbox("Escolha a base para análise", tab_names)
+    tab = st.selectbox("📂 Escolha a base para análise", tab_names)
     df = data[tab]
-    st.subheader(f"Visualização de '{tab}'")
-    st.write(df.head())
-
-    st.subheader("Resumo estatístico")
+    st.dataframe(df.head())
     st.write(df.describe(include='all'))
-
-    st.subheader("Gráfico de distribuições para colunas numéricas")
     num_cols = df.select_dtypes(include=['number']).columns.tolist()
-    chosen_col = st.selectbox("Escolha uma coluna numérica", num_cols)
-    fig = px.histogram(df, x=chosen_col)
-    st.plotly_chart(fig)
+    if num_cols:
+        chosen_col = st.selectbox("📊 Escolha coluna numérica para visualizar histograma", num_cols)
+        fig = px.histogram(df, x=chosen_col)
+        st.plotly_chart(fig)
 
 def relational_analysis(data):
-    st.header("Análise Relacional entre as Bases")
-
-    st.subheader("Quantidade de pedidos por estado do cliente (geolocalização)")
-    customers = data['customers']
-    orders = data['orders']
-
-    df_merged = orders.merge(customers, on='customer_id')
-    state_counts = df_merged['customer_state'].value_counts().reset_index()
-    state_counts.columns = ['Estado', 'Número de Pedidos']
-
-    fig = px.bar(state_counts, x='Estado', y='Número de Pedidos', title='Pedidos por Estado')
-    st.plotly_chart(fig)
-
-    st.subheader("Top 10 categorias de produto vendidas")
-    order_items = data['order_items']
-    products = data['products']
-    df_prod = order_items.merge(products[['product_id', 'product_category_name']], on='product_id')
-    cat_counts = df_prod['product_category_name'].value_counts().reset_index().head(10)
-    cat_counts.columns = ['Categoria', 'Número de Itens Vendidos']
-    fig2 = px.bar(cat_counts, x='Categoria', y='Número de Itens Vendidos', title='Top 10 categorias')
-    st.plotly_chart(fig2)
+    st.header("🔗 Análise Relacional entre as Bases")
+    try:
+        orders = data['orders']
+        customers = data['customers']
+        df_merged = orders.merge(customers, on='customer_id')
+        state_counts = df_merged['customer_state'].value_counts().reset_index()
+        state_counts.columns = ['Estado', 'Pedidos']
+        fig = px.bar(state_counts, x='Estado', y='Pedidos', title='Pedidos por Estado')
+        st.plotly_chart(fig)
+    except Exception as e:
+        st.error(f"Erro na análise relacional: {e}")
 
 def prepare_ml_data(data):
-    # Criar dataset para recomendação (exemplo simples):
-    # Prever se um consumidor vai comprar uma categoria de produto
     customers = data['customers']
     orders = data['orders']
     order_items = data['order_items']
     products = data['products']
 
-    # Mesclar para ter cliente, pedido e categoria do produto
-    df = orders.merge(order_items, on='order_id')
-    df = df.merge(products[['product_id', 'product_category_name']], on='product_id')
-    df = df.merge(customers[['customer_id', 'customer_unique_id']], on='customer_id')
+    df = orders.merge(order_items, on='order_id').merge(products[['product_id','product_category_name']], on='product_id')
+    df = df.merge(customers[['customer_id','customer_unique_id']], on='customer_id')
 
-    # Codificar cliente e categoria (label encoding simples)
     df['category_code'] = df['product_category_name'].astype('category').cat.codes
     df['customer_code'] = df['customer_unique_id'].astype('category').cat.codes
-
-    # Construir features e target:
-    # Simplificação: Features = customer_code, Target = category_code
-    # Modelagem de multi-class para recomendar categoria para usuário
 
     X = df[['customer_code']]
     y = df['category_code']
 
     return X, y, df
 
+
 def train_and_evaluate_models(X, y):
-    st.header("Treinamento e Avaliação dos Modelos de Recomendação")
+    st.header("🧠 Treinamento e Avaliação dos Modelos")
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
     rf = RandomForestClassifier(n_estimators=100, random_state=42)
     xgb = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')
 
@@ -116,54 +157,45 @@ def train_and_evaluate_models(X, y):
     st.write(f"XGBoost Accuracy: {xgb_acc:.4f}")
 
     best_model = rf if rf_acc > xgb_acc else xgb
-    st.success(f"Melhor modelo escolhido: {'Random Forest' if best_model == rf else 'XGBoost'}")
+    st.success(f"🏆 Melhor modelo escolhido: {'Random Forest' if best_model == rf else 'XGBoost'}")
 
     return best_model
 
 def recommend_product(model, df, customer_id):
-    st.header("Recomendar produtos")
-
-    st.write(f"Recomendações para o cliente código: {customer_id}")
+    st.header("🎯 Recomendações de Produto")
+    st.write(f"Cliente selecionado: {customer_id}")
 
     customer_code = df.loc[df['customer_unique_id'] == customer_id, 'customer_code'].iloc[0]
+    pred_cat_code = model.predict([[customer_code]])[0]
 
-    possible_categories = df['category_code'].unique()
-    preds = []
-    for cat in possible_categories:
-        preds.append((cat, model.predict([[customer_code]])[0]))
-
-    # Aqui simplificamos retornando categorias mais prováveis (pode ser melhorado)
-    st.write("Produto(s) recomendado(s):")
-    top_cats_codes = model.predict([[customer_code]])
-    top_cats = df.loc[df['category_code'].isin(top_cats_codes), 'product_category_name'].unique()
-    st.write(top_cats)
+    cat_name = df.loc[df['category_code'] == pred_cat_code, 'product_category_name'].iloc[0]
+    st.success(f"Produto mais recomendado para o cliente é da categoria: **{cat_name}**")
 
 def main():
-    st.set_page_config(
-        page_title="E-commerce Data Analysis & Recommender",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
+    st.set_page_config(page_title="E-commerce Data Analysis & Recommender", layout="wide")
+    add_header()
 
-    st.sidebar.title("Menu de Navegação")
-    options = ["Carga e EDA", "Análise Relacional", "Recomendação de Produtos"]
+    st.markdown('<div class="main-content">', unsafe_allow_html=True)
+
+    st.sidebar.title("Menu")
+    options = ["Análise Exploratória", "Análise Relacional", "Recomendação"]
     choice = st.sidebar.radio("Escolha uma seção", options)
 
     data = load_data()
 
-    if choice == "Carga e EDA":
+    if choice == "Análise Exploratória":
         eda_section(data)
     elif choice == "Análise Relacional":
         relational_analysis(data)
-    elif choice == "Recomendação de Produtos":
+    elif choice == "Recomendação":
         X, y, df_ml = prepare_ml_data(data)
         model = train_and_evaluate_models(X, y)
-
-        st.sidebar.subheader("Faça uma Requisição")
         customers = df_ml['customer_unique_id'].unique()
         selected_customer = st.sidebar.selectbox("Selecione o cliente para recomendação", customers)
-
         recommend_product(model, df_ml, selected_customer)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+    add_footer()
 
 if __name__ == "__main__":
     main()
