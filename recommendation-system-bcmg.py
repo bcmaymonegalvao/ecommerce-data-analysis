@@ -90,15 +90,13 @@ def load_data():
         "order_items": "olist_order_items_dataset.csv"
     }
 
-    data = {}
+    # Baixa o dataset inteiro (todos arquivos ficam em uma pasta local)
+    dataset_path = kagglehub.dataset_download(dataset)
+
     for key, filename in data_files.items():
         st.info(f"Carregando {filename} do Kaggle...")
-        df = kagglehub.load_dataset(
-            KaggleDatasetAdapter.PANDAS,
-            dataset,
-            file_path=filename,
-            pandas_kwargs={"low_memory": False}
-        )
+        file_path = f"{dataset_path}/{filename}"
+        df = pd.read_csv(file_path, low_memory=False)
         data[key] = df
 
     return data
