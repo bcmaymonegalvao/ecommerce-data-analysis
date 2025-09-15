@@ -89,7 +89,9 @@ def load_data():
         "payments": "olist_order_payments_dataset.csv",
         "order_items": "olist_order_items_dataset.csv"
     }
-
+    
+    data = {}
+    
     # Baixa o dataset inteiro (todos arquivos ficam em uma pasta local)
     dataset_path = kagglehub.dataset_download(dataset)
 
