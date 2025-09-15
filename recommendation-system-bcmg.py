@@ -74,10 +74,8 @@ def add_footer():
 # --- Carregamento e análises (exemplo reduzido) ---
 @st.cache_data(ttl=3600)
 def load_data():
-    # Dataset do Kaggle
     dataset = "olistbr/brazilian-ecommerce"
 
-    # Mapeamento Kaggle → nossos nomes
     data_files = {
         "geolocation": "olist_geolocation_dataset.csv",
         "customers": "olist_customers_dataset.csv",
@@ -89,16 +87,19 @@ def load_data():
         "payments": "olist_order_payments_dataset.csv",
         "order_items": "olist_order_items_dataset.csv"
     }
-    
+
     data = {}
-    
-    # Baixa o dataset inteiro (todos arquivos ficam em uma pasta local)
     dataset_path = kagglehub.dataset_download(dataset)
 
     for key, filename in data_files.items():
         st.info(f"Carregando {filename} do Kaggle...")
         file_path = f"{dataset_path}/{filename}"
         df = pd.read_csv(file_path, low_memory=False)
+
+        # 🔄 Força todas as colunas "object" para string (evita bug do Arrow)
+        for col in df.select_dtypes(include=["object"]).columns:
+            df[col] = df[col].astype(str)
+
         data[key] = df
 
     return data
