@@ -104,31 +104,68 @@ def load_data():
 
     return data
 
+# Helper para evitar warnings do Arrow
+def safe_show_df(df, caption=None):
+    df_fixed = df.copy()
+    for col in df_fixed.columns:
+        if df_fixed[col].dtype == "object":
+            df_fixed[col] = df_fixed[col].astype(str)
+    st.dataframe(df_fixed, use_container_width=True, height=500)
+    if caption:
+        st.caption(caption)
+
+# =========================================
+# Funções refatoradas
+# =========================================
+
 def eda_section(data):
-    st.header("🔎 Análise Exploratória dos Dados")
+    st.header("Análise Exploratória dos Dados")
+
     tab_names = list(data.keys())
-    tab = st.selectbox("📂 Escolha a base para análise", tab_names)
+    tab = st.selectbox("Escolha a base para análise", tab_names)
     df = data[tab]
-    st.dataframe(df.head())
-    st.write(df.describe(include='all'))
+    st.subheader(f"Visualização de '{tab}'")
+
+    # Exibir com compatibilidade Arrow
+    safe_show_df(df.head(), caption="Pré-visualização")
+
+    st.subheader("Resumo estatístico")
+    safe_show_df(df.describe(include='all'), caption="Resumo estatístico")
+
+    st.subheader("Gráfico de distribuições para colunas numéricas")
     num_cols = df.select_dtypes(include=['number']).columns.tolist()
     if num_cols:
-        chosen_col = st.selectbox("📊 Escolha coluna numérica para visualizar histograma", num_cols)
+        chosen_col = st.selectbox("Escolha uma coluna numérica", num_cols)
         fig = px.histogram(df, x=chosen_col)
         st.plotly_chart(fig)
+    else:
+        st.warning("Nenhuma coluna numérica disponível para análise.")
 
 def relational_analysis(data):
-    st.header("🔗 Análise Relacional entre as Bases")
-    try:
-        orders = data['orders']
-        customers = data['customers']
-        df_merged = orders.merge(customers, on='customer_id')
-        state_counts = df_merged['customer_state'].value_counts().reset_index()
-        state_counts.columns = ['Estado', 'Pedidos']
-        fig = px.bar(state_counts, x='Estado', y='Pedidos', title='Pedidos por Estado')
-        st.plotly_chart(fig)
-    except Exception as e:
-        st.error(f"Erro na análise relacional: {e}")
+    st.header("Análise Relacional entre as Bases")
+
+    st.subheader("Quantidade de pedidos por estado do cliente (geolocalização)")
+    customers = data['customers']
+    orders = data['orders']
+
+    df_merged = orders.merge(customers, on='customer_id')
+    state_counts = df_merged['customer_state'].value_counts().reset_index()
+    state_counts.columns = ['Estado', 'Número de Pedidos']
+
+    safe_show_df(state_counts, caption="Pedidos por estado")
+    fig = px.bar(state_counts, x='Estado', y='Número de Pedidos', title='Pedidos por Estado')
+    st.plotly_chart(fig)
+
+    st.subheader("Top 10 categorias de produto vendidas")
+    order_items = data['order_items']
+    products = data['products']
+    df_prod = order_items.merge(products[['product_id', 'product_category_name']], on='product_id')
+    cat_counts = df_prod['product_category_name'].value_counts().reset_index().head(10)
+    cat_counts.columns = ['Categoria', 'Número de Itens Vendidos']
+
+    safe_show_df(cat_counts, caption="Top 10 categorias de produto")
+    fig2 = px.bar(cat_counts, x='Categoria', y='Número de Itens Vendidos', title='Top 10 categorias')
+    st.plotly_chart(fig2)
 
 def prepare_ml_data(data):
     customers = data['customers']
@@ -173,14 +210,21 @@ def train_and_evaluate_models(X, y):
     return best_model
 
 def recommend_product(model, df, customer_id):
-    st.header("🎯 Recomendações de Produto")
-    st.write(f"Cliente selecionado: {customer_id}")
+    st.header("Recomendar produtos")
+
+    st.write(f"Recomendações para o cliente código: {customer_id}")
 
     customer_code = df.loc[df['customer_unique_id'] == customer_id, 'customer_code'].iloc[0]
-    pred_cat_code = model.predict([[customer_code]])[0]
 
-    cat_name = df.loc[df['category_code'] == pred_cat_code, 'product_category_name'].iloc[0]
-    st.success(f"Produto mais recomendado para o cliente é da categoria: **{cat_name}**")
+    # Simplificação: prever categorias mais prováveis
+    top_cats_codes = model.predict([[customer_code]])
+    top_cats = df.loc[df['category_code'].isin(top_cats_codes), 'product_category_name'].unique()
+
+    if len(top_cats) > 0:
+        safe_show_df(pd.DataFrame(top_cats, columns=["Categorias Recomendadas"]))
+    else:
+        st.warning("Nenhuma recomendação encontrada para este cliente.")
+        
 
 def main():
     st.set_page_config(page_title="E-commerce Data Analysis & Recommender", layout="wide")
