@@ -76,20 +76,20 @@ def add_footer():
 def load_data():
     base_url = "https://raw.githubusercontent.com/bcmaymonegalvao/ecommerce-data-analysis/main/"
     data_files = {
-        "geolocation": "olist_geolocation_dataset.csv",  # altere para CSV porque o Parquet raw nao funciona direto no github
-        "customers": "olist_customers_dataset.csv",
-        "translation": "product_category_name_translation.csv",
-        "sellers": "olist_sellers_dataset.csv",
-        "products": "olist_products_dataset.csv",
-        "orders": "olist_orders_dataset.csv",
-        "reviews": "olist_order_reviews_dataset.csv",
-        "payments": "olist_order_payments_dataset.csv",
-        "order_items": "olist_order_items_dataset.csv"
+        "geolocation": "olist_geolocation_dataset.parquet",
+        "customers": "olist_customers_dataset.parquet",
+        "translation": "product_category_name_translation.parquet",
+        "sellers": "olist_sellers_dataset.parquet",
+        "products": "olist_products_dataset.parquet",
+        "orders": "olist_orders_dataset.parquet",
+        "reviews": "olist_order_reviews_dataset.parquet",
+        "payments": "olist_order_payments_dataset.parquet",
+        "order_items": "olist_order_items_dataset.parquet"
     }
     data = {}
     for key, filename in data_files.items():
         st.info(f"Carregando {filename}...")
-        df = pd.read_csv(base_url + filename)
+        df = pd.read_parquet(base_url + filename, engine="pyarrow")
         data[key] = df
     return data
 
