@@ -986,9 +986,8 @@ elif escolha == "🤖 Sistema de Recomendação":
                         st.error("❌ Modelo não suporta predição de probabilidades.")
                 else:
                     st.warning("⚠️ Cliente não encontrado no histórico.")
-            except:
-                 Exception as e:
-                    st.error(f"Ocorreu um erro: {str(e)}")
+            except Exception as e:
+                st.error(f"Ocorreu um erro: {str(e)}")
                 
 # ============================================
 # SEÇÃO: DOCUMENTAÇÃO
