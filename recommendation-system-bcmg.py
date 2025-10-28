@@ -545,7 +545,7 @@ elif escolha == "🔗 Análise Relacional":
             title='Distribuição de Preços por Categoria',
             labels={'category_display': 'Categoria', 'price': 'Preço (R$)'}
         )
-        fig.update_xaxis(tickangle=45)
+        fig.update_xaxes(tickangle=45)
         st.plotly_chart(fig, use_container_width=True)
     
     with tab3:
