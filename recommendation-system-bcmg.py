@@ -893,93 +893,103 @@ elif escolha == "🤖 Sistema de Recomendação":
         if st.button("🔮 Gerar Recomendações", type="primary", use_container_width=True):
             df_ml = st.session_state['df_ml']
             best_model = st.session_state['best_model']
-            
-            # Obter histórico do cliente
-            customer_history = df_ml[df_ml['customer_unique_id'] == selected_customer]
-            
-            if len(customer_history) > 0:
-                customer_code = customer_history['customer_code'].iloc[0]
-                
-                # Prever probabilidades para todas as categorias
-                if hasattr(best_model, 'predict_proba'):
-                    probas = best_model.predict_proba([[customer_code]])[0]
-                    top_indices = np.argsort(probas)[::-1][:num_recommendations]
-                    
-                    # Mapear de volta para nomes de categorias
-                    category_mapping = df_ml[['category_code', 'product_category_name']].drop_duplicates()
-                    category_mapping = category_mapping.set_index('category_code')['product_category_name'].to_dict()
-                    
-                    recommendations = []
-                    for idx in top_indices:
-                        if idx in category_mapping:
-                            cat_name = category_mapping[idx]
-                            recommendations.append({
-                                'Categoria': cat_name,
-                                'Confiança (%)': f"{probas[idx] * 100:.2f}%",
-                                'Score': probas[idx]
-                            })
-                    
-                    if recommendations:
-                        rec_df = pd.DataFrame(recommendations)
-                        
-                        st.markdown("##### 🎁 Produtos Recomendados")
-                        
-                        # Visualização em cards
-                        for i, rec in enumerate(recommendations, 1):
-                            confidence = rec['Score'] * 100
-                            color = '#4caf50' if confidence > 50 else '#ff9800' if confidence > 30 else '#f44336'
-                            
-                            st.markdown(f"""
-                            <div style='padding: 1rem; background: linear-gradient(135deg, {color}22 0%, {color}11 100%); 
-                                        border-left: 4px solid {color}; border-radius: 8px; margin-bottom: 0.5rem;'>
-                                <strong>#{i} - {rec['Categoria']}</strong><br>
-                                <span style='font-size: 1.2rem; font-weight: bold; color: {color};'>
-                                    {rec['Confiança (%)']}
-                                </span>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        
-                        # Gráfico de barras
-                        fig = px.bar(
-                            rec_df,
-                            x='Score',
-                            y='Categoria',
-                            orientation='h',
-                            title='Visualização das Recomendações',
-                            color='Score',
-                            color_continuous_scale='Viridis'
-                        )
-                        fig.update_layout(showlegend=False, height=300)
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                        # Histórico do cliente
-                        st.markdown("##### 📜 Histórico de Compras do Cliente")
-                        
-                        hist_categories = customer_history['product_category_name'].value_counts().reset_index()
-                        hist_categories.columns = ['Categoria', 'Quantidade']
-                        hist_categories = hist_categories.head(10)
-                        
-                        col1, col2 = st.columns([1, 2])
-                        
-                        with col1:
-                            safe_show_df(hist_categories, height=300)
-                        
-                        with col2:
-                            fig = px.pie(
-                                hist_categories,
-                                values='Quantidade',
-                                names='Categoria',
-                                title='Distribuição de Compras Anteriores',
-                                hole=0.4
-                            )
-                            st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        st.warning("⚠️ Não foi possível gerar recomendações para este cliente.")
+            try:
+                customerhistory = dfml[dfml['customer_unique_id'] == selected_customer]
+                if len(customerhistory) == 0:
+                    st.warning('Cliente não encontrado no histórico.')
                 else:
-                    st.error("❌ Modelo não suporta predição de probabilidades.")
-            else:
-                st.warning("⚠️ Cliente não encontrado no histórico.")
-
+                    customercode = customerhistory['customercode'].iloc[0]
+                    probas = bestmodel.predict_proba([[customercode]])
+                
+                # Obter histórico do cliente
+                customer_history = df_ml[df_ml['customer_unique_id'] == selected_customer]
+                
+                if len(customer_history) > 0:
+                    customer_code = customer_history['customer_code'].iloc[0]
+                    
+                    # Prever probabilidades para todas as categorias
+                    if hasattr(best_model, 'predict_proba'):
+                        probas = best_model.predict_proba([[customer_code]])[0]
+                        top_indices = np.argsort(probas)[::-1][:num_recommendations]
+                        
+                        # Mapear de volta para nomes de categorias
+                        category_mapping = df_ml[['category_code', 'product_category_name']].drop_duplicates()
+                        category_mapping = category_mapping.set_index('category_code')['product_category_name'].to_dict()
+                        
+                        recommendations = []
+                        for idx in top_indices:
+                            if idx in category_mapping:
+                                cat_name = category_mapping[idx]
+                                recommendations.append({
+                                    'Categoria': cat_name,
+                                    'Confiança (%)': f"{probas[idx] * 100:.2f}%",
+                                    'Score': probas[idx]
+                                })
+                        
+                        if recommendations:
+                            rec_df = pd.DataFrame(recommendations)
+                            
+                            st.markdown("##### 🎁 Produtos Recomendados")
+                            
+                            # Visualização em cards
+                            for i, rec in enumerate(recommendations, 1):
+                                confidence = rec['Score'] * 100
+                                color = '#4caf50' if confidence > 50 else '#ff9800' if confidence > 30 else '#f44336'
+                                
+                                st.markdown(f"""
+                                <div style='padding: 1rem; background: linear-gradient(135deg, {color}22 0%, {color}11 100%); 
+                                            border-left: 4px solid {color}; border-radius: 8px; margin-bottom: 0.5rem;'>
+                                    <strong>#{i} - {rec['Categoria']}</strong><br>
+                                    <span style='font-size: 1.2rem; font-weight: bold; color: {color};'>
+                                        {rec['Confiança (%)']}
+                                    </span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                            
+                            # Gráfico de barras
+                            fig = px.bar(
+                                rec_df,
+                                x='Score',
+                                y='Categoria',
+                                orientation='h',
+                                title='Visualização das Recomendações',
+                                color='Score',
+                                color_continuous_scale='Viridis'
+                            )
+                            fig.update_layout(showlegend=False, height=300)
+                            st.plotly_chart(fig, use_container_width=True)
+                            
+                            # Histórico do cliente
+                            st.markdown("##### 📜 Histórico de Compras do Cliente")
+                            
+                            hist_categories = customer_history['product_category_name'].value_counts().reset_index()
+                            hist_categories.columns = ['Categoria', 'Quantidade']
+                            hist_categories = hist_categories.head(10)
+                            
+                            col1, col2 = st.columns([1, 2])
+                            
+                            with col1:
+                                safe_show_df(hist_categories, height=300)
+                            
+                            with col2:
+                                fig = px.pie(
+                                    hist_categories,
+                                    values='Quantidade',
+                                    names='Categoria',
+                                    title='Distribuição de Compras Anteriores',
+                                    hole=0.4
+                                )
+                                st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.warning("⚠️ Não foi possível gerar recomendações para este cliente.")
+                    else:
+                        st.error("❌ Modelo não suporta predição de probabilidades.")
+                else:
+                    st.warning("⚠️ Cliente não encontrado no histórico.")
+            except:
+                 Exception as e:
+                    st.error(f"Ocorreu um erro: {str(e)}")
+                
 # ============================================
 # SEÇÃO: DOCUMENTAÇÃO
 # ============================================
